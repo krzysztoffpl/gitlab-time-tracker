@@ -7,6 +7,7 @@ const Time = require('./time');
 const regex = /added (.*) of time spent/i;
 const subRegex = /subtracted (.*) of time spent/i;
 const removeRegex = /Removed time spent/i;
+const dateRegex = /spent at (.*)/i;
 
 /**
  * base model for models that have times
@@ -68,8 +69,9 @@ class hasTimes extends Base {
         });
 
         let promise = this.parallel(this.notes, (note, done) => {
-            let created = moment(note.created_at), match, subMatch;
-
+            let dateMatch = dateRegex.exec(note.body);
+            let created = moment(dateMatch ? dateMatch[1] : note.created_at);
+            let match, subMatch;
 
             if ( //
             // filter out user notes
@@ -80,6 +82,7 @@ class hasTimes extends Base {
 
             // create a time string and a time object
             let timeString = match ? match[1] : (subMatch ? `-${subMatch[1]}` : `-${Time.toHumanReadable(timeSpent, this.config.get('hoursPerDay'))}`);
+            if (dateMatch) note.created_at = dateMatch[1];
             let time = new Time(timeString, note, this, this.config);
 
             // add to total time spent
